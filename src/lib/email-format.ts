@@ -34,12 +34,14 @@ export function composeEmailBody({
   const htmlBody = escape(generatedBody.trim()).replace(/\n/g, "<br>");
   const htmlSig = escape(sig).replace(/\n/g, "<br>");
 
+  // フォントサイズは Gmail のデフォルト (~14px) より少し大きめの 15px、
+  // line-height は読みやすさ重視で 1.6。標準的なビジネスメールの見た目。
   const html = `<!DOCTYPE html>
-<html><body style="font-family:-apple-system,Helvetica,Arial,sans-serif;color:#222;line-height:1.7;font-size:14px;">
+<html><body style="font-family:-apple-system,'Hiragino Sans',Meiryo,Helvetica,Arial,sans-serif;color:#222;line-height:1.6;font-size:15px;margin:0;padding:0;">
 <div style="max-width:640px;">
 ${htmlBody}
-${sig ? `<div style="margin-top:24px;color:#555;">${htmlSig}</div>` : ""}
-<div style="margin-top:32px;padding-top:16px;border-top:1px solid #ddd;color:#888;font-size:12px;">
+${sig ? `<div style="margin-top:20px;color:#555;">${htmlSig}</div>` : ""}
+<div style="margin-top:24px;padding-top:12px;border-top:1px solid #ddd;color:#888;font-size:12px;">
 今後このメールが不要な場合は <a href="${unsubUrl}" style="color:#888;">こちら</a> から配信停止できます。
 </div>
 </div>

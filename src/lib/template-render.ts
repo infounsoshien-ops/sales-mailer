@@ -54,11 +54,29 @@ export function renderTemplate(template: string, vars: RenderVars): string {
   };
 
   let result = template;
+
+  // 1. AI プレースホルダが空文字に置換される行は、行ごと削除する。
+  //    Gemini が失敗 or 未使用のとき、本文中に空行が居座らないようにするため。
+  for (const ph of AI_PLACEHOLDERS) {
+    const value = (map[ph] ?? "").trim();
+    if (value === "") {
+      // その行 (改行を含む) を丸ごと消す。前後にあった文字も残らないので、
+      // 「件名: {{ai_subject_hint}} に関するご提案」のような書き方だと「に関するご提案」のみ残る。
+      result = result.replace(
+        new RegExp(`^.*${escapeReg(ph)}.*(\\r?\\n)?`, "gm"),
+        ""
+      );
+    }
+  }
+
+  // 2. 残りのプレースホルダを通常置換
   for (const [key, value] of Object.entries(map)) {
     result = result.replace(new RegExp(escapeReg(key), "g"), value);
   }
-  // 一応「person 様 様」みたいな崩れに対するフォールバック(変数自体が「ご担当者」になった + ユーザが「様」を付けた場合のみ)
-  // → ユーザのテンプレ書き方を信頼するため、ここでは追加処理しない
+
+  // 3. 3 連以上の改行を 2 つに圧縮 (見た目の空白詰め)
+  result = result.replace(/\n{3,}/g, "\n\n");
+
   return result;
 }
 
