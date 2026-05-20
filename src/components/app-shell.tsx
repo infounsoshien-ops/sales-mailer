@@ -1,18 +1,11 @@
 import Link from "next/link";
-import { LayoutDashboard, Users, Mail, FileText, Send, Building2 } from "lucide-react";
+import { Send } from "lucide-react";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { LogoutButton } from "./logout-button";
 import { ClientSwitcher } from "./client-switcher";
 import { ClientNavList } from "./client-nav-list";
+import { SidebarNav } from "./sidebar-nav";
 import type { Client } from "@/lib/supabase/types";
-
-const navItems = [
-  { href: "/dashboard", label: "ダッシュボード", icon: LayoutDashboard },
-  { href: "/clients", label: "顧問先", icon: Building2 },
-  { href: "/templates", label: "テンプレート", icon: FileText },
-  { href: "/contacts", label: "送信先", icon: Users },
-  { href: "/logs", label: "送信履歴", icon: Mail }
-];
 
 export async function AppShell({ children }: { children: React.ReactNode }) {
   let userEmail: string | null = null;
@@ -56,17 +49,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
           <ClientSwitcher clients={clients} activeId={activeClientId} />
         </div>
         <nav className="flex-1 space-y-1 px-3 py-4">
-          {navItems.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              prefetch={true}
-              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </Link>
-          ))}
+          <SidebarNav />
           {(() => {
             // 「運送社長支援」(自社) は他の顧問先 (代行案件) と区別して、
             // 送信履歴の直下に独立したショートカットとして表示する。
