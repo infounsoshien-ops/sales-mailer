@@ -60,13 +60,65 @@ export default async function ClientsPage() {
     }
   }
 
+  // 「運送社長支援」(= 自社) と、それ以外の顧問先 (= 代行案件) を分離する。
+  const PRIMARY_NAME = "運送社長支援";
+  const primary = clients.find((c) => c.name === PRIMARY_NAME) ?? null;
+  const others = clients.filter((c) => c.name !== PRIMARY_NAME);
+
+  const renderCard = (c: ClientWithCounts) => (
+    <Card
+      key={c.id}
+      className={activeClientId === c.id ? "border-primary ring-2 ring-primary/20" : ""}
+    >
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <CardTitle className="text-base">{c.name}</CardTitle>
+            <CardDescription className="text-xs">
+              {c.service_description || "(サービス未設定)"}
+            </CardDescription>
+          </div>
+          <div className="flex gap-1">
+            {activeClientId === c.id ? (
+              <Badge variant="default">使用中</Badge>
+            ) : (
+              <SwitchActiveClientButton clientId={c.id} />
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <div className="flex flex-wrap gap-2 text-xs">
+          <Badge variant="muted">
+            <UsersIcon className="mr-1 inline h-3 w-3" />
+            送信先 {c.contacts_count}
+          </Badge>
+          <Badge variant="muted">
+            <FileText className="mr-1 inline h-3 w-3" />
+            テンプレ {c.templates_count}
+          </Badge>
+          <Badge variant={c.from_email ? "success" : "warning"}>
+            {c.from_email ? "送信元設定済" : "送信元未設定"}
+          </Badge>
+          {!c.active && <Badge variant="muted">無効</Badge>}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/templates`}>テンプレ管理</Link>
+          </Button>
+          <ClientFormButton mode="edit" client={c} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">顧問先</h1>
           <p className="text-sm text-muted-foreground">
-            営業メール代行を行う各顧問先(クライアント企業)を登録します。
+            営業メール代行を行う顧問先(クライアント企業)を登録します。
             会社情報・送信元・テンプレートはすべて顧問先単位で管理されます。
           </p>
         </div>
@@ -96,51 +148,30 @@ export default async function ClientsPage() {
           </div>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {clients.map((c) => (
-            <Card key={c.id} className={activeClientId === c.id ? "border-primary ring-2 ring-primary/20" : ""}>
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <CardTitle className="text-base">{c.name}</CardTitle>
-                    <CardDescription className="text-xs">
-                      {c.service_description || "(サービス未設定)"}
-                    </CardDescription>
-                  </div>
-                  <div className="flex gap-1">
-                    {activeClientId === c.id ? (
-                      <Badge variant="default">使用中</Badge>
-                    ) : (
-                      <SwitchActiveClientButton clientId={c.id} />
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex flex-wrap gap-2 text-xs">
-                  <Badge variant="muted">
-                    <UsersIcon className="mr-1 inline h-3 w-3" />
-                    送信先 {c.contacts_count}
-                  </Badge>
-                  <Badge variant="muted">
-                    <FileText className="mr-1 inline h-3 w-3" />
-                    テンプレ {c.templates_count}
-                  </Badge>
-                  <Badge variant={c.from_email ? "success" : "warning"}>
-                    {c.from_email ? "送信元設定済" : "送信元未設定"}
-                  </Badge>
-                  {!c.active && <Badge variant="muted">無効</Badge>}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/templates`}>テンプレ管理</Link>
-                  </Button>
-                  <ClientFormButton mode="edit" client={c} />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <>
+          {primary && (
+            <section className="space-y-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                自社
+              </h2>
+              <div className="grid gap-3 sm:grid-cols-2">{renderCard(primary)}</div>
+            </section>
+          )}
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              顧問先 (代行案件)
+            </h2>
+            {others.length === 0 ? (
+              <div className="rounded-lg border border-dashed bg-white px-6 py-8 text-center text-sm text-muted-foreground">
+                代行案件の顧問先はまだありません。
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {others.map((c) => renderCard(c))}
+              </div>
+            )}
+          </section>
+        </>
       )}
     </div>
   );
