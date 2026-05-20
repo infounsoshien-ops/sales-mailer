@@ -3,6 +3,7 @@ import { LayoutDashboard, Users, Mail, FileText, Send, Building2 } from "lucide-
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { LogoutButton } from "./logout-button";
 import { ClientSwitcher } from "./client-switcher";
+import { ClientNavList } from "./client-nav-list";
 import type { Client } from "@/lib/supabase/types";
 
 const navItems = [
@@ -65,6 +66,12 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
               {label}
             </Link>
           ))}
+          {clients.length > 0 && (
+            <>
+              <div className="my-2 border-t" />
+              <ClientNavList clients={clients} activeId={activeClientId} />
+            </>
+          )}
         </nav>
         <div className="border-t px-3 py-3">
           {userEmail && (
