@@ -15,9 +15,12 @@ import type { Client } from "@/lib/supabase/types";
 export function ClientNavList({
   clients,
   activeId,
+  label,
 }: {
   clients: Pick<Client, "id" | "name">[];
   activeId: string | null;
+  /** セクション見出し。省略すると見出しなしでフラットに表示。 */
+  label?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -42,9 +45,11 @@ export function ClientNavList({
 
   return (
     <div className="space-y-1">
-      <div className="px-3 pb-1 pt-2 text-xs uppercase tracking-wider text-muted-foreground">
-        顧問先
-      </div>
+      {label && (
+        <div className="px-3 pb-1 pt-2 text-xs uppercase tracking-wider text-muted-foreground">
+          {label}
+        </div>
+      )}
       {clients.map((c) => (
         <button
           key={c.id}

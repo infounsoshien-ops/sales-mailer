@@ -66,12 +66,36 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
               {label}
             </Link>
           ))}
-          {clients.length > 0 && (
-            <>
-              <div className="my-2 border-t" />
-              <ClientNavList clients={clients} activeId={activeClientId} />
-            </>
-          )}
+          {(() => {
+            // 「運送社長支援」(自社) は他の顧問先 (代行案件) と区別して、
+            // 送信履歴の直下に独立したショートカットとして表示する。
+            const PRIMARY_NAME = "運送社長支援";
+            const primary = clients.find((c) => c.name === PRIMARY_NAME);
+            const others = clients.filter((c) => c.name !== PRIMARY_NAME);
+            return (
+              <>
+                {primary && (
+                  <>
+                    <div className="my-2 border-t" />
+                    <ClientNavList
+                      clients={[primary]}
+                      activeId={activeClientId}
+                    />
+                  </>
+                )}
+                {others.length > 0 && (
+                  <>
+                    <div className="my-2 border-t" />
+                    <ClientNavList
+                      clients={others}
+                      activeId={activeClientId}
+                      label="顧問先"
+                    />
+                  </>
+                )}
+              </>
+            );
+          })()}
         </nav>
         <div className="border-t px-3 py-3">
           {userEmail && (
