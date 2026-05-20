@@ -60,6 +60,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
             <Link
               key={href}
               href={href}
+              prefetch={true}
               className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
             >
               <Icon className="h-4 w-4" />
