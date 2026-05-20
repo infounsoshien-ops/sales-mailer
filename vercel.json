@@ -1,6 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "_comment_crons": "Vercel Hobby は cron が 1 日 1 回までの制限あり。毎時実行したい場合は Pro プランか、GitHub Actions の scheduled workflow から /api/cron/send-emails を叩く構成にする。今は手動送信のみで運用する想定で crons は外してある。",
   "functions": {
     "src/app/api/cron/send-emails/route.ts": {
       "maxDuration": 60
