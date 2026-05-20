@@ -11,6 +11,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { composeEmailBody } from "./email-format";
 import { generatePersonalization, isGeminiAvailable } from "./gemini";
 import { sendEmail } from "./resend";
+import { extractFirstUrl, fetchSiteContent } from "./scraper";
 import { renderTemplate, pickRandom, templateUsesAI } from "./template-render";
 
 export interface SendFlowResult {
@@ -32,10 +33,10 @@ export async function sendToContact(
 ): Promise<SendFlowResult> {
   const maxRetries = options.maxRetries ?? 1;
 
-  // 連絡先取得
+  // 連絡先取得 (note にはメモまたは会社サイト URL が入る運用想定)
   const { data: contact, error: cErr } = await supabase
     .from("contacts")
-    .select("id, user_id, client_id, company_name, industry, person_name, email, status")
+    .select("id, user_id, client_id, company_name, industry, person_name, email, status, note")
     .eq("id", contactId)
     .single();
   if (cErr || !contact) {
@@ -77,10 +78,23 @@ export async function sendToContact(
 
   // テンプレに AI プレースホルダがあって、かつ GEMINI_API_KEY が設定されていれば
   // Gemini を呼んで件名ヒント + 書き出しを生成する。
+  // contact.note に http(s) URL が含まれていればそのサイトを軽量スクレイピング
+  // して Gemini プロンプトに「相手会社の Web サイト本文」を渡す。
   // 失敗時はログだけ残してテンプレのみで送信 (= 安全フォールバック)。
   let aiSubjectHint = "";
   let aiOpening = "";
   if (templateUsesAI(chosen) && isGeminiAvailable()) {
+    const siteUrl = extractFirstUrl(contact.note as string | null);
+    let siteContent: string | null = null;
+    if (siteUrl) {
+      try {
+        siteContent = await fetchSiteContent(siteUrl);
+      } catch (e) {
+        console.warn(
+          `[send-flow] site scrape failed for ${siteUrl}: ${e instanceof Error ? e.message : String(e)}`
+        );
+      }
+    }
     try {
       const ai = await generatePersonalization({
         companyName: contact.company_name,
@@ -88,7 +102,8 @@ export async function sendToContact(
         personName: contact.person_name as string | null,
         myCompany: client.name,
         myService: (client.service_description as string | null) ?? "",
-        myStrengths: (client.strengths as string | null) ?? null
+        myStrengths: (client.strengths as string | null) ?? null,
+        siteContent
       });
       aiSubjectHint = ai.subject_hint;
       aiOpening = ai.opening;

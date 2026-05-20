@@ -31,6 +31,8 @@ export interface PersonalizationInput {
   myService: string;
   /** 自社の強み・特徴 (オプション) */
   myStrengths?: string | null;
+  /** 相手会社の Web サイトから取得したテキスト (オプション、長すぎる場合は呼び出し側で切り詰めること) */
+  siteContent?: string | null;
 }
 
 export interface PersonalizationOutput {
@@ -72,7 +74,9 @@ const SYSTEM_INSTRUCTION = `あなたはBtoB営業メールのパーソナライ
   悪い例: 絵文字、誇大な表現、「!」連発
 - 書き出し (opening) は 50〜150文字、1〜2文。
   相手会社の業界や名前に絡めた一言を入れる。売り込み口調にしない。
+  サイト本文が与えられた場合は、そこに書かれた事業内容や特徴に具体的に触れること。
   良い例: "貴社のサービスサイトを拝見し、特に物流効率化への取り組みが印象的でした。"
+  良い例: "貴社サイトに書かれた「創業80年の老舗としての伝統」と若手後継者の SNS 発信の取り組みが印象的でした。"
   悪い例: 自社の強みをいきなり並べる、長すぎる、誇張表現。
 - 敬語で丁寧に。文末に「。」を付ける。
 - 出力は必ず {"subject_hint":"...","opening":"..."} の JSON 形式。`;
@@ -106,6 +110,16 @@ export async function generatePersonalization(
     }
   });
 
+  const siteSection = input.siteContent?.trim()
+    ? [
+        "",
+        "【相手企業の Web サイトから取得した本文 (要約・引用元)】",
+        input.siteContent.trim().slice(0, 6000),
+        "",
+        "上記サイト本文の内容を参考に、相手企業の事業や取り組みに具体的に触れた opening を作ってください。"
+      ].join("\n")
+    : "";
+
   const prompt = [
     "【相手企業】",
     `会社名: ${input.companyName}`,
@@ -116,8 +130,9 @@ export async function generatePersonalization(
     `会社名: ${input.myCompany}`,
     `サービス: ${input.myService || "(未設定)"}`,
     input.myStrengths?.trim() ? `強み: ${input.myStrengths}` : "",
+    siteSection,
     "",
-    "上記の相手企業に向けた、subject_hint と opening を JSON で返してください。"
+    "上記の情報を踏まえて、subject_hint と opening を JSON で返してください。"
   ]
     .filter(Boolean)
     .join("\n");
