@@ -11,6 +11,14 @@ function getResend(): Resend {
   return _resend;
 }
 
+export interface EmailAttachment {
+  filename: string;
+  /** base64 エンコード済みのファイル内容 */
+  content: string;
+  /** MIME タイプ (例: "application/pdf") */
+  contentType?: string;
+}
+
 export interface SendEmailArgs {
   from: string;
   to: string;
@@ -18,6 +26,7 @@ export interface SendEmailArgs {
   text: string;
   html: string;
   tags?: { name: string; value: string }[];
+  attachments?: EmailAttachment[];
 }
 
 export interface SendEmailResult {
@@ -32,7 +41,12 @@ export async function sendEmail(args: SendEmailArgs): Promise<SendEmailResult> {
     subject: args.subject,
     text: args.text,
     html: args.html,
-    tags: args.tags
+    tags: args.tags,
+    attachments: args.attachments?.map((a) => ({
+      filename: a.filename,
+      content: a.content,
+      contentType: a.contentType ?? "application/octet-stream"
+    }))
   });
   if (error) {
     throw new Error(`Resend エラー: ${error.message}`);

@@ -8,6 +8,7 @@
  * - contacts.status を 'sent' に更新
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getAttachmentForSend } from "./client-attachments";
 import { composeEmailBody } from "./email-format";
 import { generatePersonalization, isGeminiAvailable } from "./gemini";
 import { sendEmail } from "./resend";
@@ -132,6 +133,19 @@ export async function sendToContact(
     contactId: contact.id
   });
 
+  // この顧問先に PDF 添付ファイルが登録されていれば取得 (なければ null)。
+  // Storage アクセスが失敗しても送信自体は止めない (添付なしで送る)。
+  let attachment: { filename: string; content: string; contentType: string } | null = null;
+  try {
+    attachment = await getAttachmentForSend(client.id, client.name);
+  } catch (e) {
+    console.warn(
+      `[send-flow] attachment fetch failed for client ${client.id}: ${
+        e instanceof Error ? e.message : String(e)
+      }`
+    );
+  }
+
   let resendId: string;
   try {
     const sent = await sendEmail({
@@ -143,7 +157,8 @@ export async function sendToContact(
       tags: [
         { name: "contact_id", value: contact.id },
         { name: "client_id", value: client.id }
-      ]
+      ],
+      attachments: attachment ? [attachment] : undefined
     });
     resendId = sent.id;
   } catch (e) {

@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { createClientRecord, updateClientRecord, deleteClientRecord } from "./actions";
+import { AttachmentSection } from "./attachment-section";
 import type { Client } from "@/lib/supabase/types";
 
 export function ClientFormButton({
@@ -195,6 +196,8 @@ export function ClientFormButton({
               />
               <Label htmlFor="cl-weekends">土日は送信をスキップ</Label>
             </div>
+
+            {mode === "edit" && client && <AttachmentSection clientId={client.id} />}
 
             {mode === "edit" && (
               <div className="flex items-center gap-2 rounded-md border p-3">

@@ -2,6 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import {
+  deleteClientAttachment,
+  hasClientAttachment,
+  uploadClientAttachment,
+} from "@/lib/client-attachments";
 import { createClient } from "@/lib/supabase/server";
 
 const ClientSchema = z.object({
@@ -107,6 +112,88 @@ export async function deleteClientRecord(id: string) {
 
   revalidatePath("/clients");
   revalidatePath("/dashboard");
+  return { ok: true as const };
+}
+
+/**
+ * 顧問先に PDF 添付ファイルが既に登録されているかを確認 (UI 用)。
+ */
+export async function checkClientAttachment(clientId: string) {
+  const supabase = createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "未ログインです" };
+  const { data: client } = await supabase
+    .from("clients")
+    .select("id")
+    .eq("id", clientId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!client) return { ok: false as const, error: "顧問先が見つかりません" };
+  const exists = await hasClientAttachment(clientId);
+  return { ok: true as const, exists };
+}
+
+/**
+ * PDF を Supabase Storage にアップロード (既存があれば上書き)。
+ * FormData で `clientId` と `file` (PDF) を受け取る。
+ */
+export async function uploadClientAttachmentAction(formData: FormData) {
+  const clientId = (formData.get("clientId") as string | null) ?? "";
+  const file = formData.get("file");
+  if (!clientId) return { ok: false as const, error: "clientId 未指定" };
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false as const, error: "ファイルが選択されていません" };
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    return { ok: false as const, error: "ファイルサイズは 5MB 以下にしてください" };
+  }
+  // type が空文字 (拡張子だけで判定された) のときも許容、ただし PDF 拡張子チェック
+  if (file.type !== "application/pdf" && !/\.pdf$/i.test(file.name)) {
+    return { ok: false as const, error: "PDF ファイルのみアップロード可能です" };
+  }
+
+  const supabase = createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "未ログインです" };
+  const { data: client } = await supabase
+    .from("clients")
+    .select("id")
+    .eq("id", clientId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!client) return { ok: false as const, error: "顧問先が見つかりません" };
+
+  const buf = Buffer.from(await file.arrayBuffer());
+  const r = await uploadClientAttachment(clientId, buf);
+  if (!r.ok) return r;
+  revalidatePath("/clients");
+  return { ok: true as const };
+}
+
+/**
+ * 添付 PDF を削除。
+ */
+export async function deleteClientAttachmentAction(clientId: string) {
+  const supabase = createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "未ログインです" };
+  const { data: client } = await supabase
+    .from("clients")
+    .select("id")
+    .eq("id", clientId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!client) return { ok: false as const, error: "顧問先が見つかりません" };
+
+  const r = await deleteClientAttachment(clientId);
+  if (!r.ok) return r;
+  revalidatePath("/clients");
   return { ok: true as const };
 }
 
