@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/cron/send-emails",
+      "schedule": "0 * * * *"
+    }
+  ],
+  "functions": {
+    "src/app/api/cron/send-emails/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/generate-email/bulk/route.ts": {
+      "maxDuration": 300
+    }
+  }
+}
