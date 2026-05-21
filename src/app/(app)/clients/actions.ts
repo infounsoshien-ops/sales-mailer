@@ -197,6 +197,28 @@ export async function deleteClientAttachmentAction(clientId: string) {
   return { ok: true as const };
 }
 
+/**
+ * ログインユーザーの全顧問先の active を一括で切り替える。
+ * ダッシュボードの「自動送信ON/OFF」スイッチから呼ばれる。
+ */
+export async function setAutoSendForAllClients(enabled: boolean) {
+  const supabase = createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "未ログインです" };
+
+  const { data, error } = await supabase
+    .from("clients")
+    .update({ active: enabled })
+    .eq("user_id", user.id)
+    .select("id");
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/", "layout");
+  return { ok: true as const, count: data?.length ?? 0 };
+}
+
 export async function switchActiveClient(clientId: string) {
   const supabase = createClient();
   const {

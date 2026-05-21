@@ -7,6 +7,7 @@ import Link from "next/link";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getActiveClient } from "@/lib/active-client";
 import { nowInJst } from "@/lib/time-jst";
+import { AutoSendToggle } from "./auto-send-toggle";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +73,10 @@ export default async function DashboardPage() {
   const stats = await fetchStats(active.id, active.daily_limit, active.from_email);
   const progress = Math.min(100, Math.round((stats.monthlySent / MONTHLY_TARGET) * 100));
 
+  // 「自動送信」ON/OFF の初期状態 = ログインユーザーの全顧問先が active なら ON
+  const autoSendEnabled =
+    clients.length > 0 && clients.every((c) => c.active);
+
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <header>
@@ -80,6 +85,8 @@ export default async function DashboardPage() {
           <span className="font-medium">{active.name}</span> の送信状況(月 {MONTHLY_TARGET} 件目安)
         </p>
       </header>
+
+      <AutoSendToggle initialEnabled={autoSendEnabled} />
 
       {!stats.fromEmailSet && (
         <Card className="border-blue-300 bg-blue-50">
