@@ -31,8 +31,14 @@ export function composeEmailBody({
   // HTML 版(改行のみ <br>。スタイルは控えめに)
   const escape = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const htmlBody = escape(generatedBody.trim()).replace(/\n/g, "<br>");
-  const htmlSig = escape(sig).replace(/\n/g, "<br>");
+  // http(s) URL を <a> タグに自動変換 (受信側でクリック可能にするため)
+  const linkify = (s: string) =>
+    s.replace(
+      /(https?:\/\/[^\s<>"'）)　]+)/g,
+      '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+    );
+  const htmlBody = linkify(escape(generatedBody.trim())).replace(/\n/g, "<br>");
+  const htmlSig = linkify(escape(sig)).replace(/\n/g, "<br>");
 
   // 文字サイズは Gmail の標準 (~13px) に合わせる。
   const html = `<!DOCTYPE html>
