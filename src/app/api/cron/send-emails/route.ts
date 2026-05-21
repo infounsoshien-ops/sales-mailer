@@ -116,7 +116,10 @@ export async function GET(request: NextRequest) {
       continue;
     }
 
-    await sleep(randomDelay(2_000, 15_000));
+    // GitHub Actions Cron で 1 時間に 1 回しか走らないので、
+    // 「スパム判定回避用のランダム遅延」は短くて十分。Vercel Hobby の 60s 制約に収めるため
+    // 0.5〜3 秒に圧縮 (元は 2〜15 秒で複数 client 処理時にタイムアウトしていた)。
+    await sleep(randomDelay(500, 3_000));
     const result = await sendToContact(supabase, next.id, { maxRetries: 3 });
     summary.push({
       client_id: c.id,
