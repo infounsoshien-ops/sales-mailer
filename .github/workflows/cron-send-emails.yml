@@ -1,0 +1,45 @@
+name: Cron - send queued emails
+
+# Vercel Hobby (無料) は Cron が 1 日 1 回までの制限あり。
+# 代わりに GitHub Actions の scheduled workflow から /api/cron/send-emails を毎時叩く。
+#
+# スケジュール: 平日 JST 10:00 〜 19:00 の毎時 (合計 10 回 / 日)
+# GitHub Actions の cron は UTC で書く。JST = UTC + 9h なので JST 10:00 = UTC 01:00。
+# 平日: 月(1) 〜 金(5)
+
+on:
+  schedule:
+    - cron: "0 1-10 * * 1-5" # UTC 01:00〜10:00 の毎時 = JST 10:00〜19:00 の毎時
+  workflow_dispatch: # 「Run workflow」ボタンで手動実行も可能 (デバッグ用)
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Hit /api/cron/send-emails
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: https://sales-mailer-rho.vercel.app
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET が GitHub Secrets に未設定です"
+            echo "リポジトリの Settings → Secrets and variables → Actions → New repository secret から登録してください"
+            exit 1
+          fi
+
+          # cron endpoint を叩いてレスポンスとステータスコードを取得
+          tmpfile=$(mktemp)
+          status=$(curl -sS -w "%{http_code}" -o "$tmpfile" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron/send-emails")
+
+          echo "HTTP status: $status"
+          echo "Response body:"
+          cat "$tmpfile" | head -c 3000
+          echo ""
+
+          if [ "$status" -ge 400 ]; then
+            echo "::error::cron endpoint returned HTTP $status"
+            exit 1
+          fi
